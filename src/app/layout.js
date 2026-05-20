@@ -1,22 +1,25 @@
 import "@/app/globals.scss";
 import "@/styles/tailwind.css";
 import ThemeProvider from "@/utils/ThemeProvider";
-import { AuthModalProvider, useAuthModal } from "@/context/AuthModalContext";
+import { AuthModalProvider } from "@/context/AuthModalContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { inter, noto, poppins, ubuntu } from "@/font/fonts";
 import Script from "next/script";
-import { ProtectedRouteProvider, useProtectedRoute } from "@/context/ProtectedRoute";
 
 /** @type {import('next').Metadata} */
 export const metadata = {
-  title: "Flollama – Open‑Source Gemini 3.1 Flash Lite AI Chatbot by Pratyush",
+  metadataBase: new URL("https://flollama.in/"),
+
+  title: "Flollama – Open-Source Gemini 3.1 Flash Lite AI Chatbot by Pratyush",
+
   description:
-    "Flollama by Pratyush is an open‑source, privacy‑first AI chatbot built with Gemini and Next.js. Enjoy fast, stylish conversations powered by the Gemini 3.1 Flash Lite.",
+    "Flollama by Pratyush is an open-source, privacy-first AI chatbot built with Gemini and Next.js. Enjoy fast, stylish conversations powered by the Gemini 3.1 Flash Lite.",
+
   keywords: [
     "Flollama",
     "AI chatbot",
     "Gemini 3.1 Flash Lite",
-    "open‑source",
+    "open-source",
     "Gemini",
     "Next.js",
     "private AI",
@@ -24,29 +27,53 @@ export const metadata = {
     "Tailwind CSS",
     "Pratyush",
   ],
-  authors: [{ name: "Pratyush Kumar", url: "https://nvmpratyush.vercel.app/" }],
+
+  authors: [
+    {
+      name: "Pratyush Kumar",
+      url: "https://nvmpratyush.vercel.app/",
+    },
+  ],
+
   creator: "Pratyush Kumar",
-  robots: "index, follow",
-  metadataBase: new URL("https://flollama.in"),
+
+  robots: {
+    index: true,
+    follow: true,
+  },
+
   alternates: {
     canonical: "/",
   },
 
   icons: {
     icon: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.webp", type: "image/webp", sizes: "32x32" },
+      { url: "/favicon.ico" },
+      { url: "/icon1.png", sizes: "32x32", type: "image/png" },
+      {
+        url: "/web-app-manifest-192x192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: "/web-app-manifest-512x512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
-    apple: "/apple-touch-icon.png",
+    apple: "/apple-icon.png",
   },
 
   openGraph: {
     title:
-      "Flollama – Open‑Source Gemini 3.1 Flash Lite AI Chatbot by Pratyush",
+      "Flollama – Open-Source Gemini 3.1 Flash Lite AI Chatbot by Pratyush",
+
     description:
-      "Flollama is a blazing‑fast, private AI chatbot powered by Gemini 3.1 Flash Lite, built with Next.js and Tailwind CSS. No API key required—chat instantly.",
+      "Flollama is a blazing-fast, private AI chatbot powered by Gemini 3.1 Flash Lite, built with Next.js and Tailwind CSS. No API key required—chat instantly.",
+
     url: "https://flollama.in/",
     siteName: "Flollama",
+
     images: [
       {
         url: "/og-image.png",
@@ -55,15 +82,19 @@ export const metadata = {
         alt: "Banner for Flollama AI",
       },
     ],
+
     locale: "en_IN",
     type: "website",
   },
 
   twitter: {
     card: "summary_large_image",
-    title: "Flollama – Open‑Source LLaMA 3 AI Chatbot",
+
+    title: "Flollama – Open-Source Gemini 3.1 Flash Lite AI Chatbot",
+
     description:
-      "Flollama by Pratyush is an open‑source AI chatbot with Ollama + Next.js. Enjoy private, fast chats powered by LLaMA 3—no API key needed.",
+      "Flollama by Pratyush is an open-source AI chatbot built with Gemini + Next.js. Enjoy private, fast chats powered by Gemini 3.1 Flash Lite.",
+
     images: ["/og-image.png"],
     creator: "@nvmpratyush",
   },
@@ -91,23 +122,27 @@ export default function RootLayout({ children }) {
           strategy="afterInteractive"
           src="https://www.googletagmanager.com/gtag/js?id=G-952YL3MK2V"
         />
+
         <Script id="google-analytics" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
+
+            function gtag() {
+              dataLayer.push(arguments);
+            }
+
             gtag('js', new Date());
             gtag('config', 'G-952YL3MK2V');
           `}
         </Script>
       </head>
+
       <body
         className={`app-body ${inter.variable} ${poppins.variable} ${ubuntu.variable} ${noto.variable}`}
       >
         <ThemeProvider>
           <AuthModalProvider>
-            <AuthProvider>
-              {children}
-            </AuthProvider>
+            <AuthProvider>{children}</AuthProvider>
           </AuthModalProvider>
         </ThemeProvider>
       </body>
