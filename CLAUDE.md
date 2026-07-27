@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository layout
 
-This repo currently contains a single app: **`next/`** — a Next.js 15 (App Router) web client and backend for Flollama, an AI chatbot. All commands below assume `cd next` first (there is no root-level `package.json`).
-
-A native mobile client (Expo/React Native) is planned but not yet scaffolded anywhere in this repo — see "Planned: mobile app" at the bottom.
+Two apps, no root-level `package.json`:
+- **`next/`** — Next.js 15 (App Router) web client and backend for Flollama, an AI chatbot. Owns the only backend: `/api/chat` and `/api/summarize-title`.
+- **`mobile/`** — Expo (SDK 54) + TypeScript native client. Pure consumer of the `next/` app's API routes; see "Mobile app" below.
 
 ## Commands (run from `next/`)
 
@@ -23,6 +23,16 @@ Required in `next/.env` (or `.env.local`):
 - `GEMINI_API_KEY` — server-side only, used by the API routes
 - `GEMINI_MODEL` — optional, defaults to `gemini-3.1-flash-lite`
 - `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET`, `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID`, `NEXT_PUBLIC_FIREBASE_APP_ID` — Firebase client config
+
+## Commands (run from `mobile/`)
+
+- `npm install`
+- `npx tsc --noEmit` — type-check
+- `npm run lint` — ESLint (`eslint-config-expo` flat config)
+- `npx expo-doctor` — validate SDK/dependency alignment after touching `package.json`
+- `npx expo prebuild` then `npm run ios` / `npm run android` — this is a bare/dev-client app (native Firebase + Google Sign-In), not Expo Go
+
+Required env vars are documented in `mobile/.env.example`; see `mobile/README.md` for full setup (Firebase config files, Google OAuth client id).
 
 ## Architecture
 
@@ -66,13 +76,15 @@ The llama wordmark SVG (`viewBox="0 0 350 372"`, two `<path>` elements) is dupli
 
 `@/*` → `src/*` (configured in `jsconfig.json`).
 
-## Planned: mobile app (not yet started)
+## Mobile app (`mobile/`)
 
-There is a plan to build a from-scratch Expo/React Native (SDK 54) mobile client in this repo that reuses this Next.js app's backend and design system rather than porting it file-for-file. Key intended decisions, for context if this work begins:
+An Expo (SDK 54) + TypeScript + Expo Router client, scaffolded from scratch — not a port. Pure client of this app's `/api/chat` and `/api/summarize-title` routes (never calls Gemini directly, which would leak `GEMINI_API_KEY`). See `mobile/README.md` for setup and `mobile/src/theme.ts` for the design tokens ported from `_variables.scss` (one override: dark background is `#141414`, not the web's `#1c1c1c`, per Figma).
 
-- Reuses `/api/chat` and `/api/summarize-title` as-is (never call Gemini directly from the mobile client — that would leak `GEMINI_API_KEY`).
-- Reuses the color/type tokens from `_variables.scss`, with one deliberate override: dark background becomes `#141414` (not `#1c1c1c`), per Figma.
-- Deliberately diverges from the web app's architecture in a few places that are fine for a scrappy web app but not for a shipped mobile app: Firestore chat IDs become UUIDs instead of the title string (title becomes a plain field, since two chats can currently summarize to the same title and collide as-is); message appends use `arrayUnion` instead of the read-then-write pattern in `chatService.js`; messages get an explicit `pending`/`sent`/`failed` status for optimistic UI instead of silently disagreeing with Firestore on write failure; the first-assistant-reply trigger is explicit from the "create chat" action instead of the `messages.length == 1` `useEffect` pattern in `ChatContainer.jsx`.
-- Uses `@react-native-firebase/*` (not the `firebase` JS SDK used here) for native Google Sign-In and background persistence.
+It deliberately diverges from this web app's architecture in ways that matter for a shipped mobile app but were fine to skip for a side project:
+- Firestore chat IDs are client-generated UUIDs (`mobile/src/lib/chatService.ts`), not the title string — two chats summarizing to the same title no longer collide, and `title` is a plain field instead of the doc ID.
+- Message appends use `arrayUnion` instead of this app's `getDoc`→spread→`updateDoc` race.
+- Messages carry an explicit `pending`/`sent`/`failed`/`streaming` status (`mobile/src/store/chatStore.ts`, Zustand) instead of silently disagreeing with Firestore on a failed write.
+- The first assistant reply is triggered explicitly from the "create chat" action (`createChatAndSend`), not from a `messages.length == 1` `useEffect` like `ChatContainer.jsx`.
+- Uses `@react-native-firebase/*` + `@react-native-google-signin/google-signin` (not the `firebase` JS SDK used here) for native Google Sign-In and background persistence — this makes it a bare/dev-client app, not Expo Go.
 
-None of this exists in the repo yet — treat it as background, not as current architecture.
+Cross-check `next/src/lib/chatService.js`, `next/src/app/api/*/route.js`, and `next/src/styles/_variables.scss` against their `mobile/` counterparts before assuming either side is still in sync — they're maintained by hand, not generated from each other.

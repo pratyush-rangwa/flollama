@@ -1,0 +1,41 @@
+{
+  "expo": {
+    "name": "Flollama",
+    "slug": "flollama-mobile",
+    "scheme": "flollama",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "backgroundColor": "#141414"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "in.flollama.mobile",
+      "googleServicesFile": "./GoogleService-Info.plist"
+    },
+    "android": {
+      "package": "in.flollama.mobile",
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "backgroundColor": "#141414"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "@react-native-firebase/app",
+      "@react-native-google-signin/google-signin",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#141414"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
