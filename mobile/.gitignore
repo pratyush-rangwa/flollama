@@ -9,7 +9,5 @@ web-build/
 *.mobileprovision
 .env
 .env.local
-GoogleService-Info.plist
-google-services.json
 *.tsbuildinfo
 .DS_Store
