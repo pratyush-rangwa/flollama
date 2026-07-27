@@ -10,12 +10,6 @@
     "backgroundColor": "#141414",
     "primaryColor": "#5354a2",
     "icon": "./assets/icon.png",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#141414"
-    },
-    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "in.flollama.mobile",
@@ -32,15 +26,23 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#141414"
-      }
+      },
+      "permissions": ["INTERNET"]
     },
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"
     },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID"
+    },
     "plugins": [
       "expo-router",
       "@react-native-firebase/app",
+      "expo-updates",
       [
         "@react-native-google-signin/google-signin",
         {
@@ -54,7 +56,10 @@
           "resizeMode": "contain",
           "backgroundColor": "#141414"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true

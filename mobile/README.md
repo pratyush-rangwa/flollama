@@ -1,6 +1,6 @@
 # Flollama Mobile
 
-Expo (SDK 54) + TypeScript client for Flollama. Pure client of the `next/` app's
+Expo (SDK 57) + TypeScript client for Flollama. Pure client of the `next/` app's
 `/api/chat` and `/api/summarize-title` routes — no model calls happen on-device,
 and the Gemini API key never ships in this app.
 
@@ -33,6 +33,10 @@ included.
    `@react-native-google-signin/google-signin` plugin config with your
    project's **iOS** OAuth client ID, reversed (the `REVERSED_CLIENT_ID` value
    inside `GoogleService-Info.plist`).
+5. Run `eas init` (needs `eas-cli` + `eas login` first) to create/link an EAS
+   project — it will offer to fill in `extra.eas.projectId` and the
+   `updates.url` for you. Until then, `app.json`'s `updates.url` still has a
+   `REPLACE_WITH_EAS_PROJECT_ID` placeholder.
 
 ## Running it locally (development build)
 
@@ -103,12 +107,74 @@ padded adaptive-icon asset from design before a Play Store release.
   `#141414`, not the web's `#1c1c1c`. `tailwind.config.js` mirrors it by hand.
 - `src/lib/api.ts` — `/api/chat` streaming client and `/api/summarize-title`
   (with client-side title fallback).
-- `src/lib/chatService.ts` — Firestore layer. Same `users/{uid}/chats/{chatId}`
-  shape as the web app, but `chatId` is a client-generated UUID (not the title
-  string) and message appends use `arrayUnion` instead of read-then-write.
+- `src/lib/firebase.ts`, `src/lib/chatService.ts`, `src/context/AuthContext.tsx`
+  — Firestore/Auth via the **modular** `@react-native-firebase` API
+  (`getAuth`, `getFirestore`, `onSnapshot`, `arrayUnion`, etc., mirroring the
+  Firebase Web SDK v9+ shape). The old namespaced API (`auth()`, `firestore()`)
+  is deprecated as of react-native-firebase v22 and is on a path to removal —
+  don't reintroduce it. Same `users/{uid}/chats/{chatId}` shape as the web
+  app, but `chatId` is a client-generated UUID (not the title string) and
+  message appends use `arrayUnion` instead of read-then-write.
 - `src/store/chatStore.ts` — Zustand store for chat/message state, including
   per-message `pending`/`sent`/`failed`/`streaming` status and the explicit
   "create chat" trigger for a new thread's first assistant reply.
+- `src/lib/highlightCode.ts` + `src/components/CodeBlock.tsx` — hand-rolled
+  syntax highlighting via `prismjs`'s tokenizer + plain `<Text>` spans
+  (no `react-native-syntax-highlighter`/`highlight.js`, which pulled in
+  multiple unfixed high-severity transitive vulnerabilities — see below).
 
 See the repo root `CLAUDE.md` for the full architecture writeup and the
 deliberate departures from the web app's approach.
+
+## Dependency health
+
+- `npm audit` is clean except for a handful of **moderate**, **build-tool-only**
+  findings inside `@expo/config-plugins` → `xcode` → `uuid` (used only when
+  running `expo prebuild` / EAS builds to edit native Xcode project files on
+  the build machine — never runs on-device, never touches user data). npm's
+  suggested `--force` fix downgrades `expo-splash-screen` to an incompatible
+  pre-SDK-57 canary, which is worse than the finding; left as-is intentionally.
+  Re-run `npm audit` after future dependency bumps in case a real fix lands.
+- `package.json` has an `overrides` block forcing `markdown-it@^14.3.0` (→
+  patched `linkify-it`) inside `react-native-markdown-display`, which
+  otherwise pulls a `markdown-it` old enough to carry an unpatched ReDoS in
+  its link-detection regex — worth checking on `react-native-markdown-display`
+  upstream releases occasionally in case it bumps its own `markdown-it` range
+  and the override can be dropped.
+- If `npm install` warns about **blocked postinstall scripts** (an
+  `allow-scripts`-style security wrapper some npm setups have) for
+  `protobufjs` or `unrs-resolver`, it's safe to approve both: `protobufjs`'s
+  postinstall is just an optional CLI codegen step (Firestore's gRPC layer
+  uses it purely as a runtime library, no codegen needed), and
+  `unrs-resolver`'s postinstall fetches its platform-specific native binary
+  for ESLint's TypeScript import resolver (dev-only; skipping it just means
+  slower/WASM-fallback linting, not a broken app).
+
+## Google Play production checklist
+
+- **Target API level**: SDK 57 already targets Android 15 (API 35)+; Google
+  Play requires new app updates to target Android 16 (API 36) starting
+  August 31, 2026 — re-check `expo-doctor` / the Expo SDK changelog before
+  submitting close to that date, since it tracks Play's requirement each
+  release.
+- **App Bundle, not APK**: `eas.json`'s `production` profile builds an
+  `app-bundle` (Play requires AAB for new submissions); `development`/
+  `preview` build plain `apk`s for easy direct install during testing.
+- **Play App Signing**: let Google manage your signing key (the default when
+  you first submit via Play Console or `eas submit`) rather than self-managing
+  a keystore.
+- **Data safety form**: this app collects a Google account (email, display
+  name, photo via Sign-In) and chat messages (stored in Firestore under the
+  signed-in user). Fill out Play Console's Data Safety section accordingly —
+  this is a Play Console step, not something in code.
+- **Privacy policy URL**: required by Play Console. `next/PRIVACY.md` is the
+  existing policy for the web product; either host that (or an updated
+  version covering the mobile app specifically) somewhere public and link it
+  in Play Console.
+- **Adaptive icon safe zone**: see "Brand assets" above — `logo-dark.png`
+  isn't inset for Android's circular/squircle mask; fine to ship, but get a
+  padded asset from design before investing in a Play Store listing.
+- **`REPLACE_WITH_*` placeholders**: `app.json` has two — the Google
+  Sign-In iOS URL scheme and the EAS `updates.url` project ID. Both must be
+  filled in before a real build (see Setup steps 4–5) or the build will use a
+  nonsense value.

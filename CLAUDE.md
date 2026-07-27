@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Two apps, no root-level `package.json`:
 - **`next/`** — Next.js 15 (App Router) web client and backend for Flollama, an AI chatbot. Owns the only backend: `/api/chat` and `/api/summarize-title`.
-- **`mobile/`** — Expo (SDK 54) + TypeScript native client. Pure consumer of the `next/` app's API routes; see "Mobile app" below.
+- **`mobile/`** — Expo (SDK 57) + TypeScript native client. Pure consumer of the `next/` app's API routes; see "Mobile app" below.
 
 ## Commands (run from `next/`)
 
@@ -78,7 +78,7 @@ The llama wordmark SVG (`viewBox="0 0 350 372"`, two `<path>` elements) is dupli
 
 ## Mobile app (`mobile/`)
 
-An Expo (SDK 54) + TypeScript + Expo Router client, scaffolded from scratch — not a port. Pure client of this app's `/api/chat` and `/api/summarize-title` routes (never calls Gemini directly, which would leak `GEMINI_API_KEY`). See `mobile/README.md` for setup and `mobile/src/theme.ts` for the design tokens ported from `_variables.scss` (one override: dark background is `#141414`, not the web's `#1c1c1c`, per Figma).
+An Expo (SDK 57) + TypeScript + Expo Router client, scaffolded from scratch — not a port. Pure client of this app's `/api/chat` and `/api/summarize-title` routes (never calls Gemini directly, which would leak `GEMINI_API_KEY`). See `mobile/README.md` for setup and `mobile/src/theme.ts` for the design tokens ported from `_variables.scss` (one override: dark background is `#141414`, not the web's `#1c1c1c`, per Figma).
 
 It deliberately diverges from this web app's architecture in ways that matter for a shipped mobile app but were fine to skip for a side project:
 - Firestore chat IDs are client-generated UUIDs (`mobile/src/lib/chatService.ts`), not the title string — two chats summarizing to the same title no longer collide, and `title` is a plain field instead of the doc ID.
@@ -86,5 +86,6 @@ It deliberately diverges from this web app's architecture in ways that matter fo
 - Messages carry an explicit `pending`/`sent`/`failed`/`streaming` status (`mobile/src/store/chatStore.ts`, Zustand) instead of silently disagreeing with Firestore on a failed write.
 - The first assistant reply is triggered explicitly from the "create chat" action (`createChatAndSend`), not from a `messages.length == 1` `useEffect` like `ChatContainer.jsx`.
 - Uses `@react-native-firebase/*` + `@react-native-google-signin/google-signin` (not the `firebase` JS SDK used here) for native Google Sign-In and background persistence — this makes it a bare/dev-client app, not Expo Go.
+- Uses `@react-native-firebase`'s **modular** API (`getAuth`, `getFirestore`, `onSnapshot`, `arrayUnion`, matching the Firebase Web SDK v9+ shape) throughout — the namespaced style this web app uses (`auth()`, `firestore()`) is deprecated as of react-native-firebase v22 and shouldn't be introduced into `mobile/`.
 
 Cross-check `next/src/lib/chatService.js`, `next/src/app/api/*/route.js`, and `next/src/styles/_variables.scss` against their `mobile/` counterparts before assuming either side is still in sync — they're maintained by hand, not generated from each other.

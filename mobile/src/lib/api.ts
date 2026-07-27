@@ -33,7 +33,7 @@ export type StreamChatHandlers = {
  * Response is NOT SSE and NOT JSON-per-line — it's raw text chunks. Non-200
  * responses are JSON `{ error }` instead of a stream.
  *
- * Prefers fetch's incremental ReadableStream (supported by Expo SDK 54's
+ * Prefers fetch's incremental ReadableStream (supported by Expo SDK 57's
  * fetch on both platforms). Falls back to progressive XHR reading if a
  * readable stream isn't available — and logs a warning when it does, since
  * silently degrading to "wait for the full response" would break the

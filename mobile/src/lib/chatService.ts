@@ -1,13 +1,28 @@
-import firestore, {
+import {
+  arrayUnion,
+  collection,
+  deleteDoc,
+  doc,
   FirebaseFirestoreTypes,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  setDoc,
+  Timestamp,
+  updateDoc,
+  writeBatch,
 } from "@react-native-firebase/firestore";
+import { firestore } from "./firebase";
 import { generateId } from "./id";
 import type { ChatMessage, ChatRole } from "./api";
 
 /**
- * Firestore data layer. Same collection shape as next/src/lib/chatService.js
- * (users/{uid}/chats/{chatId}) but with the fixes called out for a shipped
- * mobile app instead of a scrappy web app:
+ * Firestore data layer (modular API — the namespaced `firestore()` style is
+ * deprecated as of react-native-firebase v22). Same collection shape as
+ * next/src/lib/chatService.js (users/{uid}/chats/{chatId}) but with the
+ * fixes called out for a shipped mobile app instead of a scrappy web app:
  *  - chatId is a client-generated UUID, not the title string (two chats can
  *    summarize to the same title; the web app's title-as-ID collides on that).
  *  - title/createdAt/updatedAt are real fields.
@@ -31,11 +46,11 @@ export type ChatSummary = {
 };
 
 function chatsCollection(uid: string) {
-  return firestore().collection("users").doc(uid).collection("chats");
+  return collection(firestore, "users", uid, "chats");
 }
 
 function chatDoc(uid: string, chatId: string) {
-  return chatsCollection(uid).doc(chatId);
+  return doc(firestore, "users", uid, "chats", chatId);
 }
 
 export function toStoredMessage(role: ChatRole, content: string): StoredMessage {
@@ -43,7 +58,7 @@ export function toStoredMessage(role: ChatRole, content: string): StoredMessage 
     id: generateId(),
     role,
     content,
-    createdAt: firestore.Timestamp.now(),
+    createdAt: Timestamp.now(),
   };
 }
 
@@ -58,9 +73,9 @@ export async function createChat(
   title: string,
   firstMessage: ChatMessage
 ): Promise<void> {
-  const now = firestore.FieldValue.serverTimestamp();
+  const now = serverTimestamp();
 
-  await chatDoc(uid, chatId).set({
+  await setDoc(chatDoc(uid, chatId), {
     title,
     createdAt: now,
     updatedAt: now,
@@ -75,9 +90,9 @@ export async function appendMessage(
 ): Promise<StoredMessage> {
   const stored = toStoredMessage(message.role, message.content);
 
-  await chatDoc(uid, chatId).update({
-    messages: firestore.FieldValue.arrayUnion(stored),
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+  await updateDoc(chatDoc(uid, chatId), {
+    messages: arrayUnion(stored),
+    updatedAt: serverTimestamp(),
   });
 
   return stored;
@@ -87,21 +102,20 @@ export function listenToUserChats(
   uid: string,
   callback: (chats: ChatSummary[]) => void
 ) {
-  return chatsCollection(uid)
-    .orderBy("updatedAt", "desc")
-    .onSnapshot((snapshot) => {
-      callback(
-        snapshot.docs.map((d) => {
-          const data = d.data();
-          return {
-            id: d.id,
-            title: data.title ?? "untitled chat",
-            createdAt: data.createdAt ?? null,
-            updatedAt: data.updatedAt ?? null,
-          };
-        })
-      );
-    });
+  const q = query(chatsCollection(uid), orderBy("updatedAt", "desc"));
+  return onSnapshot(q, (snapshot) => {
+    callback(
+      snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          title: data.title ?? "untitled chat",
+          createdAt: data.createdAt ?? null,
+          updatedAt: data.updatedAt ?? null,
+        };
+      })
+    );
+  });
 }
 
 export function loadChatMessages(
@@ -109,8 +123,8 @@ export function loadChatMessages(
   chatId: string,
   callback: (messages: StoredMessage[]) => void
 ) {
-  return chatDoc(uid, chatId).onSnapshot((snap) => {
-    if (!snap.exists) return callback([]);
+  return onSnapshot(chatDoc(uid, chatId), (snap) => {
+    if (!snap.exists()) return callback([]);
     const data = snap.data();
     callback((data?.messages as StoredMessage[]) ?? []);
   });
@@ -121,16 +135,16 @@ export function doesChatExist(
   chatId: string,
   callback: (exists: boolean) => void
 ) {
-  return chatDoc(uid, chatId).onSnapshot((snap) => callback(snap.exists));
+  return onSnapshot(chatDoc(uid, chatId), (snap) => callback(snap.exists()));
 }
 
 export async function deleteChat(uid: string, chatId: string): Promise<void> {
-  await chatDoc(uid, chatId).delete();
+  await deleteDoc(chatDoc(uid, chatId));
 }
 
 export async function clearAllChats(uid: string): Promise<void> {
-  const snap = await chatsCollection(uid).get();
-  const batch = firestore().batch();
+  const snap = await getDocs(chatsCollection(uid));
+  const batch = writeBatch(firestore);
   snap.docs.forEach((d) => batch.delete(d.ref));
   await batch.commit();
 }

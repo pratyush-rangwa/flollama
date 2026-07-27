@@ -1,10 +1,17 @@
-import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import {
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithCredential,
+  signOut,
+  User,
+} from "@react-native-firebase/auth";
 import { GoogleSignin, isSuccessResponse } from "@react-native-google-signin/google-signin";
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { auth } from "@/lib/firebase";
 import { logger } from "@/lib/logger";
 
 type AuthContextValue = {
-  user: FirebaseAuthTypes.User | null;
+  user: User | null;
   loading: boolean;
   login: () => Promise<void>;
   logout: () => Promise<void>;
@@ -13,11 +20,11 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<FirebaseAuthTypes.User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    return auth().onAuthStateChanged((u) => {
+    return onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
@@ -34,8 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!isSuccessResponse(response) || !response.data.idToken) {
       throw new Error("Google Sign-In did not return an ID token");
     }
-    const credential = auth.GoogleAuthProvider.credential(response.data.idToken);
-    await auth().signInWithCredential(credential);
+    const credential = GoogleAuthProvider.credential(response.data.idToken);
+    await signInWithCredential(auth, credential);
   };
 
   const logout = async () => {
@@ -44,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       logger.warn("GoogleSignin.signOut failed (continuing to sign out of Firebase)", err);
     }
-    await auth().signOut();
+    await signOut(auth);
   };
 
   return (
