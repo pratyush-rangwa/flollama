@@ -2,37 +2,64 @@
   "expo": {
     "name": "Flollama",
     "slug": "flollama-mobile",
+    "description": "Flollama — an open, privacy-first AI chatbot powered by Gemini. Chat, code, and explore, free of cost.",
     "scheme": "flollama",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#141414",
+    "primaryColor": "#5354a2",
     "icon": "./assets/icon.png",
-    "splash": {
-      "backgroundColor": "#141414"
-    },
-    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "in.flollama.mobile",
-      "googleServicesFile": "./GoogleService-Info.plist"
+      "buildNumber": "1",
+      "googleServicesFile": "./GoogleService-Info.plist",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "in.flollama.mobile",
+      "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#141414"
-      }
+      },
+      "permissions": ["INTERNET"]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/REPLACE_WITH_EAS_PROJECT_ID"
     },
     "plugins": [
       "expo-router",
       "@react-native-firebase/app",
-      "@react-native-google-signin/google-signin",
+      "expo-updates",
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID"
+        }
+      ],
       [
         "expo-splash-screen",
         {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
           "backgroundColor": "#141414"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-secure-store",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true
